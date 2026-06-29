@@ -1,0 +1,576 @@
+{
+  "name": "Telegram AI Bot - Pucho Assessment",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "telegram-bot",
+        "responseMode": "lastNode",
+        "options": {}
+      },
+      "id": "2fcb6552-9d5e-4744-8d61-7551faff9ca8",
+      "name": "Telegram Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [
+        -464,
+        208
+      ],
+      "webhookId": "telegram-bot-webhook"
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.message.voice ? true : false }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "c5ab388b-7bab-4c04-85a7-7ebcd1926f7a"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "voice"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.message.text }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "string",
+                      "operation": "exists",
+                      "singleValue": true
+                    },
+                    "id": "14f52b5c-bcc3-4499-a6d6-1e0977db5194"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "text"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 1
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.body.message.photo !== undefined }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "d54d4ee8-1e69-470b-949e-fc470d09d917"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "media"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "2e80e94d-85a0-481b-92f5-5add54ce800d",
+      "name": "Switch Message Type",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [
+        -240,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/bot8805565992:AAETiIIyMzhpYoZ0AMgEYR3rU1uAMdlng9U/getFile?file_id={{ $json.body.message.voice.file_id }}",
+        "options": {}
+      },
+      "id": "dd77192e-33a0-458d-80ee-eb27aeb41c92",
+      "name": "Get Voice File",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "url": "=https://api.telegram.org/file/bot8805565992:AAETiIIyMzhpYoZ0AMgEYR3rU1uAMdlng9U/{{ $json.result.file_path }}",
+        "options": {
+          "response": {
+            "response": {
+              "responseFormat": "file"
+            }
+          }
+        }
+      },
+      "id": "164974bb-0d47-42fd-b37c-4961671bfa21",
+      "name": "Download Voice",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4,
+      "position": [
+        224,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Telegram Webhook').item.json.body.message.chat.id }}",
+        "text": "=={{ $json.choices[0].message.content }}",
+        "additionalFields": {}
+      },
+      "id": "b63cfdde-36ca-462a-b7ec-935eeeeec0df",
+      "name": "Reply Voice Answer",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1088,
+        0
+      ],
+      "webhookId": "0f67c59c-dde0-4321-8216-747dcb549102",
+      "credentials": {
+        "telegramApi": {
+          "id": "fGQr8RHa4qBIg3T1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "const raw = $input.item.json.choices[0].message.content;\nlet parsed;\ntry {\n  const clean = raw.replace(/```json|```/g, '').trim();\n  parsed = JSON.parse(clean);\n} catch(e) {\n  parsed = {};\n}\nconst isValid = parsed.task_name;\nreturn [{\n  json: {\n    ...parsed,\n    is_valid: !!isValid,\n    chat_id: $('Telegram Webhook').item.json.body.message.chat.id\n  }\n}];"
+      },
+      "id": "b30795a4-e4da-4d8d-8130-8316894e701e",
+      "name": "Validate Task",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        288,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": {
+            "caseSensitive": true,
+            "leftValue": "",
+            "typeValidation": "strict",
+            "version": 1
+          },
+          "conditions": [
+            {
+              "leftValue": "={{ $json.is_valid }}",
+              "rightValue": true,
+              "operator": {
+                "type": "boolean",
+                "operation": "equals"
+              },
+              "id": "e0865676-b5ea-4082-a7b1-e155cbb5b8d2"
+            }
+          ],
+          "combinator": "and"
+        },
+        "options": {}
+      },
+      "id": "0a348dd9-6a4f-43ac-a1e4-8fd46951a995",
+      "name": "Is Task Valid",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [
+        448,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $('Validate Task').item.json.chat_id }}",
+        "text": "=✅ Task Created Successfully!\n\n📌 Task: {{ $('Validate Task').item.json.task_name }}\n📝 Description: {{ $('Validate Task').item.json.task_description }}\n🔴 Priority: {{ $('Validate Task').item.json.priority }}\n📊 Status: {{ $('Validate Task').item.json.status }}\n👤 Assignee: {{ $('Validate Task').item.json.assignee }}",
+        "additionalFields": {}
+      },
+      "id": "e2b7337d-f120-4037-bf2c-7c6bd6807e29",
+      "name": "Reply Task Success",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        1120,
+        192
+      ],
+      "webhookId": "074253ae-5f48-4880-8177-20378f322216",
+      "credentials": {
+        "telegramApi": {
+          "id": "fGQr8RHa4qBIg3T1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.chat_id }}",
+        "text": "Invalid Task Message!!",
+        "additionalFields": {}
+      },
+      "id": "e28ae4fe-338c-4ff0-8a5d-856031c0d3f5",
+      "name": "Reply Invalid Task",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        656,
+        368
+      ],
+      "webhookId": "ff6e189e-4e6a-46da-9635-bc6cf022c45d",
+      "credentials": {
+        "telegramApi": {
+          "id": "fGQr8RHa4qBIg3T1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "chatId": "={{ $json.body.message.chat.id }}",
+        "text": "Invalid Message type, Please send voice message or text!!",
+        "additionalFields": {}
+      },
+      "id": "aafc114f-3e0d-4cf0-8e9e-ee30d83c5e48",
+      "name": "Reply Invalid Media",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        0,
+        400
+      ],
+      "webhookId": "c5d704b9-fc01-4475-a6f3-b877ca0a971c",
+      "credentials": {
+        "telegramApi": {
+          "id": "fGQr8RHa4qBIg3T1",
+          "name": "Telegram account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "authentication": "oAuth2",
+        "team": "90161671746",
+        "space": "90167304886",
+        "folderless": true,
+        "list": "901615558502",
+        "name": "={{ $('Validate Task').item.json.task_name }}",
+        "additionalFields": {}
+      },
+      "type": "n8n-nodes-base.clickUp",
+      "typeVersion": 1,
+      "position": [
+        864,
+        192
+      ],
+      "id": "87653e09-b6e6-4a18-bb74-154387e1947b",
+      "name": "Create a task",
+      "credentials": {
+        "clickUpOAuth2Api": {
+          "id": "ucn97IZxfsEGdE2r",
+          "name": "ClickUp OAuth2 API"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"Extract task details from the user message and return ONLY a JSON object with keys: task_name, task_description, status, priority, assignee. If any field is missing set it to null. Return ONLY raw JSON, no markdown, no backticks, no explanation.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $('Telegram Webhook').item.json.body.message.text }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        16,
+        224
+      ],
+      "id": "05443f16-5147-430a-b23a-1fdaa16c953a",
+      "name": "Extract Task Details"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"model\": \"llama-3.3-70b-versatile\",\n  \"messages\": [\n    {\n      \"role\": \"system\",\n      \"content\": \"You are a helpful assistant. Answer the user's question clearly and concisely.\"\n    },\n    {\n      \"role\": \"user\",\n      \"content\": \"={{ $json.text }}\"\n    }\n  ]\n}",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        864,
+        0
+      ],
+      "id": "9123940c-8985-41ed-8999-e5ab130495cc",
+      "name": "AI Answer Voice Query"
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/audio/transcriptions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            {
+              "name": "Authorization",
+              "value": "Bearer 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"
+            }
+          ]
+        },
+        "sendBody": true,
+        "contentType": "multipart-form-data",
+        "bodyParameters": {
+          "parameters": [
+            {
+              "parameterType": "formBinaryData",
+              "name": "file",
+              "inputDataFieldName": "data"
+            },
+            {
+              "name": "model",
+              "value": "whisper-large-v3"
+            },
+            {
+              "name": "response_format",
+              "value": "json"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.4,
+      "position": [
+        720,
+        0
+      ],
+      "id": "d604e13e-3aa1-47a2-aca4-f61091a46ffa",
+      "name": "Whisper Transcribe"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first();\nitem.binary.data.fileExtension = 'ogg';\nitem.binary.data.mimeType = 'audio/ogg';\nitem.binary.data.fileName = 'voice.ogg';\nreturn item;"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        432,
+        0
+      ],
+      "id": "1cb8fc9e-ba76-4ac4-bf7c-b4c0ba92e2b3",
+      "name": "Code in JavaScript"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "Telegram Webhook": {
+      "main": [
+        [
+          {
+            "node": "Switch Message Type",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch Message Type": {
+      "main": [
+        [
+          {
+            "node": "Get Voice File",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract Task Details",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Invalid Media",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Get Voice File": {
+      "main": [
+        [
+          {
+            "node": "Download Voice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Download Voice": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Validate Task": {
+      "main": [
+        [
+          {
+            "node": "Is Task Valid",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is Task Valid": {
+      "main": [
+        [
+          {
+            "node": "Create a task",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Reply Invalid Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Create a task": {
+      "main": [
+        [
+          {
+            "node": "Reply Task Success",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract Task Details": {
+      "main": [
+        [
+          {
+            "node": "Validate Task",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "AI Answer Voice Query": {
+      "main": [
+        [
+          {
+            "node": "Reply Voice Answer",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Whisper Transcribe": {
+      "main": [
+        [
+          {
+            "node": "AI Answer Voice Query",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Whisper Transcribe",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate",
+    "availableInMCP": false
+  },
+  "versionId": "b6fb1fab-6c67-4850-b318-279f9f9c25fa",
+  "meta": {
+    "templateCredsSetupCompleted": true,
+    "instanceId": "087762d2911f15c844e73862b07f1294540a85c5aded5a71e4bb3fe6dd2dac9a"
+  },
+  "nodeGroups": [],
+  "id": "JYdjm39dzhSYY6Z3",
+  "tags": []
+}
